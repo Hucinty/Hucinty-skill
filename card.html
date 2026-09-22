@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UI Component Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        pre, code { font-family: 'JetBrains Mono', monospace; }
+        .preview-canvas { transition: max-width 0.25s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 p-3 sm:p-5 min-h-screen flex flex-col items-center">
+
+    <div class="w-full max-w-xl flex flex-col gap-4">
+        <!-- Control Bar -->
+        <header class="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-sm flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span id="themeBadge" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 uppercase tracking-wider shrink-0">Card</span>
+                <h1 id="componentTitle" class="text-sm sm:text-base font-bold text-slate-900 truncate">Component Preview</h1>
+            </div>
+            
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" id="btnViewportMobile" class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors" title="Mobile View">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
+                </button>
+                <button type="button" id="btnViewportFull" class="p-2 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors" title="Fluid View">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                </button>
+                <button type="button" id="btnCopyCode" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                    Copy HTML
+                </button>
+            </div>
+        </header>
+
+        <!-- Preview Stage -->
+        <section id="previewWrapper" class="preview-canvas w-full mx-auto transition-all">
+            <div id="renderArea" class="rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 bg-white overflow-hidden">
+                <!-- Injected component markup renders here -->
+            </div>
+        </section>
+
+        <!-- Design Token Inspection Panel -->
+        <footer class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex flex-col gap-2.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Design System Tokens</span>
+                <span id="timestamp" class="text-[11px] font-semibold text-slate-400"></span>
+            </div>
+            <div id="tokenGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <!-- Token pill cards populated via JS -->
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const storageKey = params.get('key');
+        let currentPayload = null;
+
+        if (storageKey) {
+            try {
+                currentPayload = JSON.parse(sessionStorage.getItem(storageKey));
+            } catch (e) {
+                console.error("Storage parse error:", e);
+            }
+        }
+
+        // Fallback demo data if loaded directly in browser for testing
+        if (!currentPayload) {
+            currentPayload = {
+                title: "Subscription Card",
+                category: "Card",
+                theme: "modern-clean",
+                htmlContent: `
+                    <div class="p-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl text-white shadow-lg space-y-4">
+                        <span class="px-3 py-1 bg-white/20 text-xs font-bold rounded-full">Pro Tier</span>
+                        <h2 class="text-2xl font-bold">Standard Workspace</h2>
+                        <p class="text-sm text-indigo-100">Unlimited on-device generation with instant preview & export.</p>
+                        <div class="pt-2 flex items-center justify-between">
+                            <span class="text-3xl font-extrabold">$19<span class="text-sm font-medium text-indigo-200">/mo</span></span>
+                            <button class="px-4 py-2 bg-white text-indigo-600 font-bold rounded-xl text-sm shadow hover:bg-indigo-50 active:scale-95 transition-all">Select</button>
+                        </div>
+                    </div>
+                `,
+                tokens: {
+                    primaryColor: "#4f46e5",
+                    bgColor: "#ffffff",
+                    borderRadius: "16px",
+                    fontFamily: "Plus Jakarta Sans"
+                },
+                timestamp: new Date().toLocaleTimeString()
+            };
+        }
+
+        // DOM Binding
+        document.getElementById('componentTitle').textContent = currentPayload.title;
+        document.getElementById('themeBadge').textContent = currentPayload.category;
+        document.getElementById('renderArea').innerHTML = currentPayload.htmlContent;
+        document.getElementById('timestamp').textContent = currentPayload.timestamp || '';
+
+        // Token Grid Rendering
+        const tokenContainer = document.getElementById('tokenGrid');
+        tokenContainer.innerHTML = '';
+        const tokenEntries = Object.entries(currentPayload.tokens);
+        tokenEntries.forEach(([key, val]) => {
+            const card = document.createElement('div');
+            card.className = "p-2 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-0.5";
+            card.innerHTML = `
+                <span class="text-[10px] uppercase font-bold text-slate-400 truncate">${key}</span>
+                <span class="font-mono text-slate-800 font-semibold truncate">${val}</span>
+            `;
+            tokenContainer.appendChild(card);
+        });
+
+        // Viewport Switcher
+        const previewWrapper = document.getElementById('previewWrapper');
+        const btnMobile = document.getElementById('btnViewportMobile');
+        const btnFull = document.getElementById('btnViewportFull');
+
+        btnMobile.addEventListener('click', () => {
+            previewWrapper.style.maxWidth = '360px';
+            btnMobile.classList.add('bg-indigo-50', 'text-indigo-600');
+            btnFull.classList.remove('bg-indigo-50', 'text-indigo-600');
+        });
+
+        btnFull.addEventListener('click', () => {
+            previewWrapper.style.maxWidth = '100%';
+            btnFull.classList.add('bg-indigo-50', 'text-indigo-600');
+            btnMobile.classList.remove('bg-indigo-50', 'text-indigo-600');
+        });
+
+        // Copy Code Clipboard Handler
+        document.getElementById('btnCopyCode').addEventListener('click', async (e) => {
+            try {
+                await navigator.clipboard.writeText(currentPayload.htmlContent);
+                const btn = e.currentTarget;
+                const originalText = btn.textContent;
+                btn.textContent = "Copied!";
+                btn.classList.add('bg-emerald-600');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('bg-emerald-600');
+                }, 1800);
+            } catch (err) {
+                alert("Could not copy markup to clipboard.");
+            }
+        });
+    </script>
+</body>
+</html>

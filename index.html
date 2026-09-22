@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <script>
+        /**
+         * Global entry point invoked by Google AI Edge Gallery.
+         * Accepts stringified JSON and returns a stringified JSON response.
+         */
+        window.ai_edge_gallery_get_result = async function(data) {
+            try {
+                const parsed = typeof data === "string" ? JSON.parse(data) : data;
+
+                const payload = {
+                    title: parsed.title || "Untitled Component",
+                    category: parsed.category || "Component",
+                    theme: parsed.theme || "modern-clean",
+                    htmlContent: parsed.htmlContent || "<div style='padding:16px;'>No markup provided</div>",
+                    tokens: parsed.tokens || {
+                        primaryColor: "#4f46e5",
+                        bgColor: "#ffffff",
+                        borderRadius: "16px",
+                        fontFamily: "system-ui, sans-serif"
+                    },
+                    timestamp: new Date().toISOString()
+                };
+
+                // Store payload for the preview card to access without URL length truncation
+                const previewKey = "ui_skill_preview_" + Date.now();
+                sessionStorage.setItem(previewKey, JSON.stringify(payload));
+
+                return JSON.stringify({
+                    success: true,
+                    summary: `Generated ${payload.category}: "${payload.title}" (${payload.theme} theme).`,
+                    webview: `card.html?key=${encodeURIComponent(previewKey)}`
+                });
+            } catch (err) {
+                return JSON.stringify({
+                    success: false,
+                    error: err.message || "Failed to process UI component generation."
+                });
+            }
+        };
+    </script>
+</body>
+</html>
